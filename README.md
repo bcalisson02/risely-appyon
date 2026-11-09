@@ -1,5 +1,13 @@
 # Risely — Desafio 1 (teste prático Appyon)
 
+**Link público:** https://risely-appyon.vercel.app
+
+Abra num navegador de desktop para ver o app na moldura de iPhone, ou no celular para tela cheia.
+
+| Onboarding (ritmo e projeção) | Nutrição (resumo do dia) | Treino (detalhe) |
+|---|---|---|
+| ![Onboarding: slider de ritmo com gráfico de projeção](docs/onboarding.png) | ![Nutrição: anel de calorias, macros e refeições](docs/nutrition.png) | ![Treino: Full Body Pilates com 8 exercícios](docs/workout.png) |
+
 App de fitness e nutrição implementado a partir do pacote de design em `../design_handoff_risely`:
 onboarding de 18 telas com plano calculado, contador de calorias (N1–N7), treinos em casa (W1–W7),
 coach com IA (C1–C5) e a tela Today (H1).
@@ -40,7 +48,9 @@ npm run export:web      # = npx expo export -p web  →  ./dist
 `dist/` é um SPA estático. Já está configurado para os dois hosts:
 
 - **Vercel:** `vercel.json` (build, `outputDirectory: dist` e rewrite de todas as rotas para `/`).
-  `npx vercel --prod` na raiz, ou importe o repositório no painel.
+  `npx vercel --prod` na raiz, ou importe o repositório no painel. Para publicar só a pasta já gerada, como
+  foi feito no link acima: `npx vercel deploy dist --prod`. O `public/vercel.json` vai junto para `dist/`
+  com o rewrite.
 - **Netlify:** `netlify.toml` + `public/_redirects` (copiado para `dist/`). `npx netlify deploy --prod --dir dist`,
   ou arraste a pasta `dist` no painel.
 
