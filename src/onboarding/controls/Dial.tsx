@@ -9,6 +9,7 @@ import { C } from '../../theme/tokens';
 import { T } from '../../theme/type';
 import { tick } from '../../components/anim';
 import { useNumberBump } from './Bars';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Circular dial (O07): 280pt, draggable 36pt knob, 5 → 60 min in steps of 5.
@@ -24,7 +25,7 @@ export function Dial({ value, onChange }: { value: number; onChange: (v: number)
   const pressed = useSharedValue(0);
   useEffect(() => {
     cur.set(value);
-  }, [value]);
+  }, [cur, value]);
   const emit = useCallback(
     (n: number) => {
       tick();
@@ -47,13 +48,15 @@ export function Dial({ value, onChange }: { value: number; onChange: (v: number)
       scheduleOnRN(emit, n);
     }
   };
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (e) => {
       pressed.set(withTiming(1, { duration: 200 }));
-      at(e.x, e.y);
+      at(e.x / gs.value, e.y / gs.value);
     },
-    onUpdate: (e) => at(e.x, e.y),
+    onUpdate: (e) => at(e.x / gs.value, e.y / gs.value),
     onFinalize: () => {
       pressed.set(withTiming(0, { duration: 200 }));
     },
@@ -74,6 +77,11 @@ export function Dial({ value, onChange }: { value: number; onChange: (v: number)
         accessibilityRole="adjustable"
         accessibilityLabel="Session length"
         accessibilityValue={{ text: `${value} minutes` }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          const n = Math.max(5, Math.min(60, value + (e.nativeEvent.actionName === 'increment' ? 5 : -5)));
+          if (n !== value) emit(n);
+        }}
       >
         <Svg width={SIZE} height={SIZE} style={{ transform: [{ rotate: '-90deg' }] }}>
           <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke={C.bg} strokeWidth={SW} />

@@ -13,12 +13,14 @@ export function Glass({
   dark,
   radius = 999,
   shadow = 'soft',
+  pointerEvents,
 }: {
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
   dark?: boolean;
   radius?: number;
   shadow?: 'soft' | 'bar' | 'none';
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
 }) {
   const sh =
     shadow === 'none'
@@ -37,7 +39,7 @@ export function Glass({
       ? ({ backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)' } as any)
       : null;
   return (
-    <View style={[{ borderRadius: radius }, sh, style]}>
+    <View pointerEvents={pointerEvents} style={[{ borderRadius: radius }, sh, style]}>
       <View style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }]} pointerEvents="none">
         {Platform.OS === 'web' ? (
           <View style={[StyleSheet.absoluteFill, webBlur, { backgroundColor: dark ? GLASS.dark : GLASS.bg }]} />

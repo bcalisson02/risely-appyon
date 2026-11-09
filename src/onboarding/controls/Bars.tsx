@@ -8,6 +8,7 @@ import { EASE, SPRING, isReduceMotion , webCursor } from '../../theme/motion';
 import { Icon, IconName } from '../../components/Icon';
 import { T } from '../../theme/type';
 import { tick } from '../../components/anim';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Daily activity (O05): 4 vertical bars (72, 108, 144, 180), tap or drag across.
@@ -21,7 +22,7 @@ export function ActivityBars({ value, onChange }: { value: number; onChange: (i:
   const cur = useSharedValue(value);
   useEffect(() => {
     cur.set(value);
-  }, [value]);
+  }, [cur, value]);
   const emit = useCallback(
     (i: number) => {
       tick();
@@ -38,17 +39,27 @@ export function ActivityBars({ value, onChange }: { value: number; onChange: (i:
       scheduleOnRN(emit, i);
     }
   };
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
   const pan = usePanGesture({
     minDistance: 0,
-    onBegin: (e) => at(e.x),
-    onUpdate: (e) => at(e.x),
+    onBegin: (e) => at(e.x / gs.value),
+    onUpdate: (e) => at(e.x / gs.value),
   });
   return (
     <GestureDetector gesture={pan}>
       <View
         onLayout={(e) => width.set(e.nativeEvent.layout.width)}
         style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end', height: 180, ...webCursor('pointer') } as any}
+        accessible
         accessibilityRole="adjustable"
+        accessibilityLabel="Daily activity"
+        accessibilityValue={{ min: 0, max: 3, now: value }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => {
+          const i = Math.max(0, Math.min(3, value + (e.nativeEvent.actionName === 'increment' ? 1 : -1)));
+          if (i !== value) emit(i);
+        }}
       >
         {H.map((h, i) => (
           <Bar key={i} i={i} h={h} sel={value} />
@@ -64,7 +75,7 @@ function Bar({ i, h, sel }: { i: number; h: number; sel: number }) {
   const pop = useSharedValue(1);
   useEffect(() => {
     if (!rm) enter.set(withDelay(260 + i * 70, withTiming(1, { duration: 560, easing: SPRING })));
-  }, []);
+  }, [enter, i, rm]);
   const first = React.useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -72,7 +83,7 @@ function Bar({ i, h, sel }: { i: number; h: number; sel: number }) {
       return;
     }
     if (sel === i) pop.set(withSequence(withTiming(0.85, { duration: 0 }), withTiming(1.06, { duration: 216, easing: EASE }), withTiming(1, { duration: 144, easing: EASE })));
-  }, [sel]);
+  }, [i, pop, sel]);
   const st = useAnimatedStyle(() => ({
     opacity: Math.min(1, enter.value),
     transform: [{ translateY: (h * (1 - (0.2 + 0.8 * enter.value) * pop.value)) / 2 }, { scaleY: (0.2 + 0.8 * enter.value) * pop.value }, { scaleX: pop.value }],
@@ -118,7 +129,7 @@ function DayPill({ i, label, on, onToggle }: { i: number; label: string; on: boo
   const x = useSharedValue(0);
   useEffect(() => {
     if (!rm) enter.set(withDelay(260 + i * 40, withTiming(1, { duration: 460, easing: SPRING })));
-  }, []);
+  }, [enter, i, rm]);
   const st = useAnimatedStyle(() => ({
     opacity: Math.min(1, enter.value),
     transform: [{ translateY: (1 - enter.value) * 12 }, { translateX: x.value }, { scale: s.value }],
@@ -158,6 +169,6 @@ export function useNumberBump(dep: unknown) {
       return;
     }
     s.set(withSequence(withTiming(1.04, { duration: 90 }), withTiming(1, { duration: 90 })));
-  }, [dep]);
+  }, [dep, s]);
   return useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
 }

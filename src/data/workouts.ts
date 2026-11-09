@@ -18,8 +18,16 @@ export const POPULAR = [
   { id: 'mobility', title: 'Morning Mobility', meta: '10 min · All levels', img: IMG.woMobility, pos: { left: '60%', top: '50%' } },
 ];
 
-/** W3 list (Pilates, filtered) */
+/** W3 list (Pilates, filtered — as designed) */
 export const CATEGORY_LIST = ['wallcore', 'fullbody', 'posture', 'bridge', 'wallsculpt', 'corebasics'];
+
+/** Other categories reuse the mock catalog (no extra workouts were designed). */
+export const CATEGORY_LISTS: Record<string, string[]> = {
+  Pilates: CATEGORY_LIST,
+  Yoga: ['mobility', 'posture'],
+  Strength: ['wallsculpt', 'bridge', 'corebasics', 'wallcore'],
+  'Stretch & sleep': ['mobility', 'posture'],
+};
 
 export const CATEGORIES = [
   { id: 'Pilates', count: '24 workouts', img: IMG.catPilates, pos: { left: '50%', top: '74%' } },

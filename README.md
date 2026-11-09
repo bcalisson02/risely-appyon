@@ -1,14 +1,17 @@
 # Risely — Desafio 1 (teste prático Appyon)
 
-**Link público:** https://risely-appyon.vercel.app
+- **Link público:** https://risely-appyon.vercel.app
+- **Repositório:** https://github.com/bcalisson02/risely-appyon
 
-Abra num navegador de desktop para ver o app na moldura de iPhone, ou no celular para tela cheia.
+Abra num navegador de desktop para ver o app na moldura de iPhone (ela encolhe para caber em telas baixas),
+ou no celular para tela cheia. O primeiro acesso começa no onboarding; para voltar a ele depois, abra
+`/onboarding/0`.
 
 | Onboarding (ritmo e projeção) | Nutrição (resumo do dia) | Treino (detalhe) |
 |---|---|---|
 | ![Onboarding: slider de ritmo com gráfico de projeção](docs/onboarding.png) | ![Nutrição: anel de calorias, macros e refeições](docs/nutrition.png) | ![Treino: Full Body Pilates com 8 exercícios](docs/workout.png) |
 
-App de fitness e nutrição implementado a partir do pacote de design em `../design_handoff_risely`:
+App de fitness e nutrição implementado a partir do pacote de design fornecido pela Appyon (protótipo HTML, `SCREENS.md` e assets; o pacote não faz parte deste repositório):
 onboarding de 18 telas com plano calculado, contador de calorias (N1–N7), treinos em casa (W1–W7),
 coach com IA (C1–C5) e a tela Today (H1).
 
@@ -32,12 +35,20 @@ npx expo start          # w = web, i = iOS, a = Android
 - **Recomeçar o onboarding:** abra `/onboarding/0`, ou limpe os dados do site (o estado fica salvo no
   AsyncStorage / localStorage).
 
-Checagens:
+### Checagens
 
 ```bash
 npx tsc --noEmit        # tipos: 0 erros
-npx eslint src          # lint: 0 erros (avisos de exhaustive-deps em efeitos de montagem)
+npm run lint            # ESLint (eslint-config-expo): 0 erros, 0 avisos
+npm test                # testes unitários do derive()/plan() (node:test, sem dependências extras)
+npm run e2e             # ponta a ponta no Chrome instalado (ver "Qualidade")
 ```
+
+`npm run e2e` precisa do app rodando: `npx expo start --web` (porta 8081) ou outra URL em `BASE`, por
+exemplo `BASE=https://risely-appyon.vercel.app npm run e2e`. Outras variáveis aceitas:
+- `CHROME`: caminho do Chrome, se ele não estiver no local padrão;
+- `W`, `H` e `MOBILE=1`: tamanho da tela e toque;
+- `RM=1`: Reduce Motion.
 
 ### Build web e deploy
 
@@ -118,6 +129,23 @@ no web.
 preenchimento de anéis usam um tween em `requestAnimationFrame` (`useTween`), que se comporta igual no web e
 no nativo.
 
+**Moldura escalada no desktop.** Quando a janela é mais baixa que o telefone, o iPhone inteiro de 393×852 é
+reduzido com `transform: scale`, como faz o protótipo, em vez de espremer o layout. Os gestos recebem
+coordenadas em pixels de tela, então os controles de arrasto dividem pelo fator de escala
+(`useGestureScale()`) e a régua continua andando 1 kg a cada 80 pt.
+
+**Os controles são donos da própria posição.** Régua, wheels e cards partem do valor do store e só
+reportam mudanças de volta. Se ressincronizassem a partir da prop, brigariam com o arremesso, porque a prop
+sempre chega atrasada em relação ao gesto.
+
+**Rotas abertas direto (refresh ou link).** Todo botão de voltar ou fechar usa `goBack(fallback)`, e os fins
+de fluxo usam `closeTo(aba)` (`src/nav/back.ts`). Recarregar em `/scan`, `/session`, `/coach` ou numa sheet
+nunca deixa um botão sem destino.
+
+**Telas pequenas.** No web os cards do stack são fixados na altura da tela (`flex: 1`); por padrão eles
+cresceriam com o conteúdo. A área de pergunta do onboarding rola só quando não cabe (iPhone SE), e as fotos
+de topo da sessão e da análise encolhem proporcionalmente.
+
 ---
 
 ## Estrutura de pastas
@@ -156,6 +184,10 @@ risely/
     data/                       mocks de alimentos e treinos
     theme/                      tokens, tipografia, motion (curvas, durações, Reduce Motion)
     nav/transitions.tsx         interpolators de push / modal / sheet / fade
+    nav/back.ts                 goBack / closeTo com destino para rotas abertas direto
+  tests/
+    derive.test.mjs             testes unitários do port de derive() / plan()
+    e2e/                        lib (harness), onboarding.mjs, app.mjs
 ```
 
 ---
@@ -166,13 +198,18 @@ risely/
   Apple Health e lembretes só gravam a escolha.
 - **Câmera:** o scan usa a foto `meal-bowl.jpg` como visor. O disparador simula a captura. A análise leva cerca
   de 2,9 s e sempre retorna o "Teriyaki chicken bowl" (628 kcal, P46 C62 G22).
-- **Busca de alimentos:** resultados fixos para "avoc". Os filtros All / My foods / Brands funcionam sobre
-  essa lista.
-- **Treinos:** catálogo fixo. A contagem "N workouts" segue a regra do protótipo (9 com todos os grupos
-  ativos, +3 por grupo removido). A sessão reproduz o fluxo do protótipo: exercício 3 de 8 (0:42) → descanso
-  de 15 s → conclusão.
+- **Busca de alimentos:** resultados fixos para "avoc", incluindo "Guacamole", como no design. Os filtros
+  All / My foods / Brands funcionam sobre essa lista.
+- **Recentes (N2):** o "+" registra no jantar sem toast (o próprio ✓ é o retorno). O ✓ vem do store, então
+  continua marcado ao reabrir a sheet.
+- **Treinos:** catálogo fixo. A contagem "N workouts" do Pilates segue a regra do protótipo (9 com todos os
+  grupos ativos, +3 por grupo removido). Yoga, Strength e Stretch mostram subconjuntos do mesmo catálogo,
+  porque o design não tem treinos próprios para eles. A sessão reproduz o fluxo do protótipo: exercício 3 de 8
+  (0:42) → descanso de 15 s → conclusão.
 - **Coach:** respostas roteirizadas a partir do design, chegando depois de cerca de 2,2 s em estado "pensando".
-  - Jantar: o card do salmão; "Log" registra a refeição no jantar.
+  Stop e reset cancelam todas as respostas pendentes.
+  - Jantar: o card do salmão; "Log" e o chip "Log it for me" registram a refeição no jantar (o chip é uma
+    ação, sem mensagem extra).
   - Sexta mais curta: card de troca; "Swap it" mostra "Friday updated".
   - "Add a stretch": simula a falha offline do C5, com "Tap to retry".
   - "How am I doing this week?" e "Help me sleep better": respostas próprias, com quick replies
@@ -185,7 +222,33 @@ risely/
   - "Quick add calories", "Saved meals", a pílula "Dinner";
   - sino, calendário, linhas de refeição do N1 e ingredientes do N5;
   - virar câmera, som da sessão, "Share";
-  - histórico e microfone do coach.
+  - histórico, menu e microfone do coach.
+
+## Qualidade
+
+`tests/e2e` roda os fluxos no Chrome com input real (mouse ou toque via DevTools) e falha se aparecer erro
+no console:
+
+- **`onboarding.mjs` (37 checagens):**
+  - régua (arrasto, arremesso, retorno);
+  - ritmo e gráfico, dias (inclusive a recusa de desligar o último), dial, cards e wheel;
+  - plano final 62 kg / 27 de jan / 1.650 / 110·190·50;
+  - editar pelo O16 e voltar, "Adjust answers" com histórico limpo.
+- **`app.mjs` (70 checagens):**
+  - nutrição completa (Recentes, scan, busca com 2 itens, Undo) com os números 810 → 182 → 810;
+  - "Coming soon" e filtros com as contagens 9 / 21 / 12;
+  - sessão com pausa, +15 s e conclusão;
+  - coach C1–C5 com Stop e retry;
+  - abrir cada modal ou sheet direto pela URL e fechar.
+
+As duas suítes passam em quatro tamanhos de tela:
+- desktop 1440×900;
+- notebook 1280×650, com a moldura escalada;
+- celular 390×844 com toque;
+- iPhone SE 375×667.
+
+Também passam com Reduce Motion. Os builds iOS e Android exportam sem erro (`expo export -p ios -p android`)
+e o `expo-doctor` passa 20/20.
 
 ## Onde o design divergia e o que segui
 
@@ -201,8 +264,8 @@ pacote divergia deles, segui o protótipo e o `SCREENS.md`:
 
 ## Limitações conhecidas
 
-- Testado no web (Chrome, desktop) contra o protótipo, tela por tela. **Não testei em aparelho iOS/Android
-  físico.** A tipagem e as APIs são as do SDK 58, mas vale um teste no Expo Go antes de demonstrar no celular.
+- Testado no web (Chrome, desktop e emulação de celular) e com os bundles nativos compilando. **Não testei em
+  aparelho iOS/Android físico**; vale um teste no Expo Go antes de demonstrar no celular.
 - **Copy que não vem do `SCREENS.md`** foi definida depois, no briefing de ajustes:
   - "Leg circles" e "Cool-down stretch" no W4 (agora com os 8 exercícios);
   - as três respostas novas do coach e os quick replies delas;

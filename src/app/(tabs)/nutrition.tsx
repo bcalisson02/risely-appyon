@@ -30,6 +30,9 @@ export default function Nutrition() {
   const day = useDay();
   const toastFood = useNutrition((s) => s.toastFood);
   const toastKey = useNutrition((s) => s.toastKey);
+  const toastAt = useNutrition((s) => s.toastAt);
+  // shown only right after an add (N5 / N6 → N7); a stale request is dropped
+  const [now] = React.useState(() => Date.now());
   const undo = useNutrition((s) => s.undo);
   const clearToast = useNutrition((s) => s.clearToast);
   const hasDinner = day.dinner.length > 0;
@@ -196,7 +199,7 @@ export default function Nutrition() {
           )}
         </InsetList>
       </ScrollView>
-      {toastFood ? (
+      {toastFood && toastAt > now - 8000 ? (
         <Toast
           key={toastKey}
           top={top + 4}

@@ -12,8 +12,9 @@ import { InsetList } from '../components/List';
 import { GlassButton } from '../components/Bits';
 import { WorkoutRow } from '../components/WorkoutRow';
 import { useScreen } from '../components/Frame';
-import { CATALOG, CATEGORY_LIST } from '../data/workouts';
+import { CATALOG, CATEGORY_LISTS } from '../data/workouts';
 import { activeCapsules, matchCount, useWorkouts } from '../store/workouts';
+import { goBack } from '../nav/back';
 
 /** W3 · Category — active filters as removable capsules. */
 export default function Category() {
@@ -22,18 +23,21 @@ export default function Category() {
   const filters = useWorkouts((s) => s.filters);
   const clearFilter = useWorkouts((s) => s.clearFilter);
   const caps = activeCapsules(filters);
-  const n = matchCount(filters);
+  const title = name && CATEGORY_LISTS[name] ? name : 'Pilates';
+  const list = CATEGORY_LISTS[title];
+  // Pilates follows the designed count (9, +3 per cleared filter group); the others count their list
+  const n = title === 'Pilates' ? matchCount(filters) : list.length;
   return (
     <View style={{ flex: 1 }}>
       <Aura />
       <ScrollView contentContainerStyle={{ paddingTop: top, paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 8 }}>
-          <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => router.back()} />
+          <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => goBack('/workouts')} />
           <GlassButton icon="sliders-horizontal" label="Filters" onPress={() => router.push('/filters?from=category')} />
         </View>
         <View style={{ gap: 2, paddingTop: 4, paddingHorizontal: 4, paddingBottom: 14 }}>
           <T size={34} lh={41} w="700" ls={-0.02} accessibilityRole="header">
-            {name || 'Pilates'}
+            {title}
           </T>
           <T size={15} color={C.secondary}>
             {n} workouts match your filters
@@ -59,7 +63,7 @@ export default function Category() {
           </View>
         ) : null}
         <InsetList>
-          {CATEGORY_LIST.map((id) => (
+          {list.map((id) => (
             <WorkoutRow key={id} {...CATALOG[id]} />
           ))}
         </InsetList>

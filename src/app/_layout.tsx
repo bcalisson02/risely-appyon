@@ -9,6 +9,7 @@ import { modalOptions, pushOptions, sheetOptions, fadeOptions } from '../nav/tra
 import { useReduceMotion } from '../theme/motion';
 import { useOnboarding } from '../store/onboarding';
 import { useNutrition } from '../store/nutrition';
+import { useWorkouts } from '../store/workouts';
 
 if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('risely-fonts')) {
   // Inter for non-Apple browsers (README → Typography); Apple browsers resolve -apple-system / ui-rounded first.
@@ -19,20 +20,22 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
   document.head.appendChild(l);
   const s = document.createElement('style');
   s.textContent =
-    'html,body,#root{height:100%;overscroll-behavior:none}body{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}*::-webkit-scrollbar{display:none}*{scrollbar-width:none}img{-webkit-user-drag:none}';
+    'html,body,#root{height:100%;overscroll-behavior:none}body{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}input,textarea{user-select:text;-webkit-user-select:text}*::-webkit-scrollbar{display:none}*{scrollbar-width:none}img{-webkit-user-drag:none}';
   document.head.appendChild(s);
 }
 
 function useHydrated() {
-  const [h, setH] = useState(useOnboarding.persist.hasHydrated() && useNutrition.persist.hasHydrated());
+  const [h, setH] = useState(useOnboarding.persist.hasHydrated() && useNutrition.persist.hasHydrated() && useWorkouts.persist.hasHydrated());
   useEffect(() => {
-    const check = () => setH(useOnboarding.persist.hasHydrated() && useNutrition.persist.hasHydrated());
+    const check = () => setH(useOnboarding.persist.hasHydrated() && useNutrition.persist.hasHydrated() && useWorkouts.persist.hasHydrated());
     const a = useOnboarding.persist.onFinishHydration(check);
     const b = useNutrition.persist.onFinishHydration(check);
+    const c = useWorkouts.persist.onFinishHydration(check);
     check();
     return () => {
       a();
       b();
+      c();
     };
   }, []);
   return h;

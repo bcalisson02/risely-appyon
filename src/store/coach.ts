@@ -20,7 +20,6 @@ type State = {
   status: 'idle' | 'thinking';
   online: boolean;
   quick: string[];
-  timer: any;
   send: (text: string, ctx: Ctx) => void;
   stop: () => void;
   retry: (id: string, ctx: Ctx) => void;
@@ -61,11 +60,25 @@ function userText(text: string) {
 
 const TIME: Record<Topic, string | null> = { dinner: 'Today 18:40', friday: 'Today 18:42', stretch: 'Today 18:45', progress: null, sleep: null, other: null };
 
+/** every pending reply timer, so Stop and reset cancel them all */
+const pending = new Set<ReturnType<typeof setTimeout>>();
+const later = (fn: () => void, ms: number) => {
+  const t = setTimeout(() => {
+    pending.delete(t);
+    fn();
+  }, ms);
+  pending.add(t);
+};
+const cancelAll = () => {
+  pending.forEach(clearTimeout);
+  pending.clear();
+};
+
 export const useCoach = create<State>((set, get) => {
   const pushAll = (msgs: Msg[], quick: string[]) => {
     // replies land 260 ms apart (README → Chat)
     msgs.forEach((m, i) =>
-      setTimeout(() => {
+      later(() => {
         set({ messages: [...get().messages, m] });
         if (i === msgs.length - 1) set({ status: 'idle', quick });
       }, i * 260)
@@ -107,13 +120,15 @@ export const useCoach = create<State>((set, get) => {
     status: 'idle',
     online: true,
     quick: [],
-    timer: null,
     send: (raw, ctx) => {
       const text = raw.trim();
       if (!text || get().status === 'thinking' || !get().online) return;
       if (text === 'Log it for me') {
+        // action chip: logs the suggested meal (the card turns into "Logged"); no extra message
         const meal = [...get().messages].reverse().find((m) => m.role === 'ai' && m.kind === 'meal');
         if (meal) get().logMeal(meal.id);
+        set({ quick: get().quick.filter((q) => q !== text) });
+        return;
       }
       const topic = topicOf(text);
       const time = TIME[topic];
@@ -128,12 +143,11 @@ export const useCoach = create<State>((set, get) => {
       }
       msgs.push({ id: uid(), role: 'user', text: userText(text) });
       set({ messages: [...get().messages, ...msgs], status: 'thinking', quick: [] });
-      const timer = setTimeout(() => reply(topic, ctx), 2200);
-      set({ timer });
+      later(() => reply(topic, ctx), 2200);
     },
     stop: () => {
-      clearTimeout(get().timer);
-      set({ status: 'idle', timer: null });
+      cancelAll();
+      set({ status: 'idle' });
     },
     retry: (id) => {
       // back online; the failed message is withdrawn and the conversation returns to the action reply (C5 → C4)
@@ -145,7 +159,7 @@ export const useCoach = create<State>((set, get) => {
       set({ messages: get().messages.map((m) => (m.id === id && m.role === 'ai' && m.kind === 'swap' ? { ...m, state: keep ? 'kept' : 'swapped' } : m)) });
       if (!keep) {
         const t = TIME.stretch!;
-        setTimeout(() => {
+        later(() => {
           set({
             messages: [...get().messages, { id: uid(), role: 'time', text: t }, { id: uid(), role: 'ai', kind: 'text', text: 'Done. Friday is now Express Pilates, 10 minutes.' }],
           });
@@ -153,7 +167,7 @@ export const useCoach = create<State>((set, get) => {
       }
     },
     reset: () => {
-      clearTimeout(get().timer);
+      cancelAll();
       set({ messages: [], status: 'idle', online: true, quick: [] });
     },
   };

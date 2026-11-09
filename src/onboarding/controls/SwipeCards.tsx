@@ -9,6 +9,7 @@ import { C } from '../../theme/tokens';
 import { T } from '../../theme/type';
 import { EASE , webCursor } from '../../theme/motion';
 import { tick } from '../../components/anim';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Eating style (O10): horizontal swipe cards 260×360 with photos, snap to center; side cards
@@ -26,6 +27,8 @@ export function SwipeCards({ cards, value, onChange }: { cards: DietCard[]; valu
   const start = useSharedValue(0);
   const last = useSharedValue(value);
   const lastMove = useSharedValue(0);
+  const width = useSharedValue(0);
+  const active = useSharedValue(false);
   const N = cards.length;
 
   const emit = useCallback(
@@ -35,12 +38,7 @@ export function SwipeCards({ cards, value, onChange }: { cards: DietCard[]; valu
     },
     [onChange]
   );
-  useEffect(() => {
-    if (last.value !== value) {
-      last.set(value);
-      off.set(withTiming(value * SZ, { duration: 450, easing: EASE }));
-    }
-  }, [value]);
+  // owns its scroll offset (see Ruler); accessibility actions move it directly
 
   useAnimatedReaction(
     () => Math.max(0, Math.min(N - 1, Math.round(off.value / SZ))),
@@ -52,24 +50,38 @@ export function SwipeCards({ cards, value, onChange }: { cards: DietCard[]; valu
     }
   );
 
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
+
   const pan = usePanGesture({
     activeOffsetX: [-6, 6],
     failOffsetY: [-14, 14],
     onBegin: () => {
+      active.set(false);
       cancelAnimation(off);
       start.set(off.value);
     },
+    onActivate: () => {
+      active.set(true);
+    },
     onUpdate: (e) => {
       lastMove.set(Date.now());
-      let o = start.value - e.translationX;
+      let o = start.value - (e.translationX / gs.value);
       const max = (N - 1) * SZ;
       if (o < 0) o *= 0.35;
       if (o > max) o = max + (o - max) * 0.35;
       off.set(o);
     },
     onDeactivate: (e) => {
-      const vx = Date.now() - lastMove.value > 60 ? 0 : Math.max(-2.5, Math.min(2.5, e.velocityX / 1000));
+      const vx = Date.now() - lastMove.value > 60 ? 0 : Math.max(-2.5, Math.min(2.5, (e.velocityX / gs.value) / 1000));
       const i = Math.max(0, Math.min(N - 1, Math.round((off.value - vx * 200) / SZ)));
+      off.set(withTiming(i * SZ, { duration: 450, easing: EASE }));
+    },
+    // a tap (no swipe) on a side card brings it to the center
+    onFinalize: (e) => {
+      if (active.value || width.value <= 0) return;
+      const x = e.x / gs.value;
+      const i = Math.max(0, Math.min(N - 1, Math.round((x - width.value / 2 + off.value) / SZ)));
       off.set(withTiming(i * SZ, { duration: 450, easing: EASE }));
     },
   });
@@ -80,17 +92,20 @@ export function SwipeCards({ cards, value, onChange }: { cards: DietCard[]; valu
     <View style={{ gap: 20 }}>
       <GestureDetector gesture={pan}>
         <View
-          onLayout={(e) => setW(e.nativeEvent.layout.width)}
+          onLayout={(e) => {
+            setW(e.nativeEvent.layout.width);
+            width.set(e.nativeEvent.layout.width);
+          }}
           style={{ marginHorizontal: -16, height: 376, overflow: 'hidden', ...webCursor('grab') } as any}
           accessibilityRole="adjustable"
           accessibilityLabel="Eating style"
           accessibilityValue={{ text: cards[value]?.title }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-          onAccessibilityAction={(e) => onChange(Math.max(0, Math.min(N - 1, value + (e.nativeEvent.actionName === 'increment' ? 1 : -1))))}
+          onAccessibilityAction={(e) => off.set(withTiming(Math.max(0, Math.min(N - 1, value + (e.nativeEvent.actionName === 'increment' ? 1 : -1))) * SZ, { duration: 450, easing: EASE }))}
         >
           <Animated.View style={[{ flexDirection: 'row', gap: GAP, paddingVertical: 8 }, row]}>
             {cards.map((c, j) => (
-              <Card key={c.title} c={c} j={j} off={off} onTap={() => off.set(withTiming(j * SZ, { duration: 450, easing: EASE }))} />
+              <Card key={c.title} c={c} j={j} off={off} />
             ))}
           </Animated.View>
         </View>
@@ -104,16 +119,17 @@ export function SwipeCards({ cards, value, onChange }: { cards: DietCard[]; valu
   );
 }
 
-function Card({ c, j, off, onTap }: { c: DietCard; j: number; off: SharedValue<number>; onTap: () => void }) {
+function Card({ c, j, off }: { c: DietCard; j: number; off: SharedValue<number> }) {
   const st = useAnimatedStyle(() => {
     const d = Math.min(1, Math.abs(j - off.value / SZ));
     return { transform: [{ scale: 1 - 0.1 * d }], opacity: 1 - 0.4 * d };
   });
   return (
     <Animated.View style={[{ width: CW, height: 360, borderRadius: 28, overflow: 'hidden', backgroundColor: C.bg }, st]}>
-      <View onStartShouldSetResponder={() => true} onResponderRelease={onTap} style={{ flex: 1 }}>
-        <Image source={c.img} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" />
-        <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} />
+      {/* no touch targets inside: the pan detector handles swipe and tap */}
+      <View pointerEvents="none" style={{ flex: 1 }}>
+        <Image source={c.img} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" pointerEvents="none" draggable={false} />
+        <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.62)']} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 }} />
         <View style={{ position: 'absolute', left: 20, right: 20, bottom: 18, gap: 2 }}>
           <T size={24} w="700" ls={-0.02} color="#FFFFFF">
             {c.title}
@@ -131,7 +147,7 @@ function Dot({ on }: { on: boolean }) {
   const w = useSharedValue(on ? 18 : 6);
   useEffect(() => {
     w.set(withTiming(on ? 18 : 6, { duration: 300, easing: EASE }));
-  }, [on]);
+  }, [on, w]);
   const st = useAnimatedStyle(() => ({ width: w.value }));
   return <Animated.View style={[{ height: 6, borderRadius: 999, backgroundColor: on ? C.violet : '#D1D1D6' }, st]} />;
 }

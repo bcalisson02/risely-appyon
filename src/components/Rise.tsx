@@ -30,7 +30,7 @@ export function Rise({
   const k = useSharedValue(rm ? 1 : 0);
   useEffect(() => {
     if (!rm) k.set(withDelay(base + index * gap, withTiming(1, { duration, easing })));
-  }, []);
+  }, [base, duration, easing, gap, index, k, rm]);
   const st = useAnimatedStyle(() => ({ opacity: k.value, transform: [{ translateY: (1 - k.value) * dy }] }));
   return <Animated.View style={[style, st]}>{children}</Animated.View>;
 }

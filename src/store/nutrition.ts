@@ -31,11 +31,13 @@ export const TERIYAKI: Food = { id: 'teriyaki', name: 'Teriyaki chicken bowl', k
 
 type State = {
   dinner: Food[];
-  /** last add, for Undo */
-  lastAdded: string | null;
-  /** bumps when a food is added — N1 shows the toast */
+  /** bumps when a toast is raised — N1 shows it (N7) */
   toastKey: number;
+  /** what the toast announces; Undo removes exactly toastIds */
   toastFood: Food | null;
+  toastIds: string[];
+  /** when the toast was requested — a toast older than a few seconds is never shown */
+  toastAt: number;
   addFood: (items: Food | Food[], opts?: { toast?: boolean }) => string[];
   remove: (ids: string[]) => void;
   undo: () => void;
@@ -47,24 +49,29 @@ export const useNutrition = create<State>()(
   persist(
     (set, get) => ({
       dinner: [],
-      lastAdded: null,
       toastKey: 0,
       toastFood: null,
+      toastIds: [],
+      toastAt: 0,
       addFood: (items, opts) => {
         const list = (Array.isArray(items) ? items : [items]).map((f, i) => ({ ...f, id: `${f.id}-${Date.now()}-${i}` }));
         if (!list.length) return [];
         const total: Food = list.length === 1 ? list[0] : { id: 'multi', name: list.map((x) => x.name).join(', '), kcal: sum(list, 'kcal'), p: sum(list, 'p'), c: sum(list, 'c'), f: sum(list, 'f') };
-        const toast = opts?.toast ?? true;
-        set({ dinner: [...get().dinner, ...list], lastAdded: list.map((x) => x.id).join('|'), toastKey: toast ? get().toastKey + 1 : get().toastKey, toastFood: toast ? total : get().toastFood });
-        return list.map((x) => x.id);
+        const ids = list.map((x) => x.id);
+        set({ dinner: [...get().dinner, ...list] });
+        if (opts?.toast ?? true) set({ toastKey: get().toastKey + 1, toastFood: total, toastIds: ids, toastAt: Date.now() });
+        return ids;
       },
-      remove: (ids) => set({ dinner: get().dinner.filter((d) => !ids.includes(d.id)) }),
+      remove: (ids) => {
+        const touchesToast = get().toastIds.some((id) => ids.includes(id));
+        set({ dinner: get().dinner.filter((d) => !ids.includes(d.id)), ...(touchesToast ? { toastFood: null, toastIds: [] } : null) });
+      },
       undo: () => {
-        const ids = (get().lastAdded ?? '').split('|');
-        set({ dinner: get().dinner.filter((d) => !ids.includes(d.id)), lastAdded: null, toastFood: null });
+        const ids = get().toastIds;
+        set({ dinner: get().dinner.filter((d) => !ids.includes(d.id)), toastFood: null, toastIds: [] });
       },
-      clearToast: () => set({ toastFood: null }),
-      reset: () => set({ dinner: [], lastAdded: null, toastFood: null }),
+      clearToast: () => set({ toastFood: null, toastIds: [] }),
+      reset: () => set({ dinner: [], toastFood: null, toastIds: [] }),
     }),
     { name: 'risely-nutrition-v1', storage, partialize: (s) => ({ dinner: s.dinner }) }
   )

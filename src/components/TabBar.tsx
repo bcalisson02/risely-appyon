@@ -32,7 +32,7 @@ export function TabBar({ state, navigateToTab }: any) {
   const x = useSharedValue(idx * STEP);
   useEffect(() => {
     x.set(withTiming(idx * STEP, { duration: DUR.tabIndicator, easing: SPRING }));
-  }, [idx]);
+  }, [idx, x]);
   const ind = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 
   return (
@@ -85,7 +85,7 @@ function TabButton({ t, on, onPress }: { t: (typeof TABS)[number]; on: boolean; 
       return;
     }
     if (on) s.set(withSequence(withTiming(0.85, { duration: 120 }), withTiming(1, { duration: 300, easing: EASE })));
-  }, [on]);
+  }, [on, s]);
   const st = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <Press

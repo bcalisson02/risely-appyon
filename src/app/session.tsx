@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
@@ -19,6 +18,7 @@ import { useScreen, useLightStatusBar } from '../components/Frame';
 import { tick, success } from '../components/anim';
 import { comingSoon } from '../components/ComingSoon';
 import { useWorkouts } from '../store/workouts';
+import { closeTo, goBack } from '../nav/back';
 
 type Phase = 'work' | 'rest' | 'done';
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -75,7 +75,7 @@ function usePulse(sec: number) {
   const s = useSharedValue(1);
   useEffect(() => {
     if (sec <= 3 && sec > 0) s.set(withSequence(withTiming(1.06, { duration: 0 }), withTiming(1, { duration: 300 })));
-  }, [sec]);
+  }, [s, sec]);
   return useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
 }
 
@@ -89,7 +89,9 @@ function Ctrl({ icon, onPress, label }: { icon: IconName; onPress: () => void; l
 
 /** W5 · Session — dark for focus. Big timer, next move, three controls. */
 function Work({ onNext }: { onNext: () => void }) {
-  const { top, bottom, width } = useScreen();
+  const { top, bottom, width, height } = useScreen();
+  // 440pt on an 852pt phone; shorter phones keep room for the timer and controls
+  const PH = Math.min(440, Math.round(height * 0.52));
   const [paused, setPaused] = useState(false);
   const TOTAL = 90; // 0:42 left of a 1:30 block (prototype: sec + 48)
   const [sec, setSec] = useCountdown(42, paused, onNext);
@@ -99,24 +101,24 @@ function Work({ onNext }: { onNext: () => void }) {
   const progress = 1 - sec / TOTAL;
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ height: 440, overflow: 'hidden', backgroundColor: C.ink }}>
+      <View style={{ height: PH, overflow: 'hidden', backgroundColor: C.ink }}>
         <Image source={IMG.woSession} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition={{ left: '50%', top: '40%' }} />
         <LinearGradient
           colors={['rgba(10,10,15,0.55)', 'rgba(10,10,15,0)', 'rgba(10,10,15,0)', 'rgba(10,10,15,0.55)', '#0A0A0F']}
           locations={[0, 0.26, 0.48, 0.72, 1]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
-        <Svg width="100%" height={440} style={{ position: 'absolute', top: 0, left: 0 }} viewBox={`0 0 ${width} 440`} preserveAspectRatio="none">
+        <Svg width="100%" height={PH} style={{ position: 'absolute', top: 0, left: 0 }} viewBox={`0 0 ${width} ${PH}`} preserveAspectRatio="none">
           <Defs>
             <RadialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
               <Stop offset="0" stopColor="rgb(91,59,245)" stopOpacity={0.22} />
               <Stop offset="0.7" stopColor="rgb(91,59,245)" stopOpacity={0} />
             </RadialGradient>
           </Defs>
-          <Ellipse cx={width / 2} cy={440} rx={width * 0.9} ry={440 * 0.6} fill="url(#glow)" />
+          <Ellipse cx={width / 2} cy={PH} rx={width * 0.9} ry={PH * 0.6} fill="url(#glow)" />
         </Svg>
         <View style={{ position: 'absolute', top, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <GlassButton dark icon="x" weight="bold" iconSize={18} label="End workout" onPress={() => router.back()} />
+          <GlassButton dark icon="x" weight="bold" iconSize={18} label="End workout" onPress={() => goBack('/workout/fullbody')} />
           <Glass dark shadow="none" style={{ height: 32, paddingHorizontal: 12, justifyContent: 'center' }}>
             <T size={15} w="600" color="#FFFFFF">
               3 of 8
@@ -179,7 +181,7 @@ function Rest({ onDone }: { onDone: () => void }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ paddingTop: top, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <GlassButton dark icon="x" weight="bold" iconSize={18} label="End workout" onPress={() => router.back()} />
+        <GlassButton dark icon="x" weight="bold" iconSize={18} label="End workout" onPress={() => goBack('/workout/fullbody')} />
         <T size={15} color="#A1A1A6">
           3 of 8 done
         </T>
@@ -242,7 +244,7 @@ const FEEL = ['Too easy', 'Just right', 'Too hard'];
 
 /** W7 · Complete — celebrate, show stats, ask how it felt. */
 function Complete() {
-  const { top, bottom } = useScreen();
+  const { top, bottom, height } = useScreen();
   const feel = useWorkouts((s) => s.feel);
   const setFeel = useWorkouts((s) => s.setFeel);
   useEffect(() => success(), []);
@@ -250,7 +252,7 @@ function Complete() {
     <View style={{ flex: 1 }}>
       <Aura />
       <View style={{ flex: 1, paddingTop: top, paddingHorizontal: 16, paddingBottom: bottom }}>
-        <View style={{ alignItems: 'center', gap: 18, paddingTop: 72 }}>
+        <View style={{ alignItems: 'center', gap: 18, paddingTop: height >= 800 ? 72 : 24 }}>
           <PopIn delay={200}>
             <View style={{ width: 72, height: 72, borderRadius: 999, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="check" size={34} color="#FFFFFF" weight="bold" />
@@ -322,8 +324,7 @@ function Complete() {
         <PrimaryButton
           title="Done"
           onPress={() => {
-            router.dismissAll();
-            router.navigate('/workouts');
+            closeTo('/workouts');
           }}
         />
         <TextButton title="Share" onPress={comingSoon} />

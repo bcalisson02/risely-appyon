@@ -50,6 +50,13 @@ export const forFade: StackCardStyleInterpolator = ({ current, next }) => {
   return { cardStyle: { opacity: current.progress } };
 };
 
+/**
+ * On web a stack card defaults to min-height:100% and grows with its content, so nothing inside
+ * would ever scroll on a short screen. flex:1 pins it to the screen height.
+ */
+const CARD = { flex: 1 } as const;
+const CARD_TRANSPARENT = { flex: 1, backgroundColor: 'transparent' } as const;
+
 const BlackOverlay = ({ style }: { style: any }) => (
   <Animated.View pointerEvents="none" style={[{ flex: 1, backgroundColor: '#000' }, style]} />
 );
@@ -64,7 +71,7 @@ export function pushOptions(reduce: boolean): StackNavigationOptions {
     cardShadowEnabled: false,
     transitionSpec: spec(reduce ? DUR.fade : DUR.push),
     cardStyleInterpolator: reduce ? forFade : forPush,
-    cardStyle: { backgroundColor: 'transparent' },
+    cardStyle: CARD_TRANSPARENT,
   } as StackNavigationOptions;
 }
 
@@ -78,6 +85,7 @@ export function modalOptions(reduce: boolean): StackNavigationOptions {
     cardShadowEnabled: false,
     transitionSpec: spec(reduce ? DUR.fade : DUR.modal, reduce ? DUR.fade : DUR.dismiss),
     cardStyleInterpolator: reduce ? forFade : forModal,
+    cardStyle: CARD,
   } as StackNavigationOptions;
 }
 
@@ -89,7 +97,7 @@ export function sheetOptions(reduce: boolean): StackNavigationOptions {
     cardOverlayEnabled: true,
     cardOverlay: BlackOverlay,
     cardShadowEnabled: false,
-    cardStyle: { backgroundColor: 'transparent' },
+    cardStyle: CARD_TRANSPARENT,
     transitionSpec: spec(reduce ? DUR.fade : DUR.sheet, reduce ? DUR.fade : DUR.unsheet),
     cardStyleInterpolator: reduce ? forFade : forSheet,
   } as StackNavigationOptions;
@@ -102,5 +110,6 @@ export function fadeOptions(): StackNavigationOptions {
     cardOverlayEnabled: false,
     transitionSpec: spec(DUR.fade),
     cardStyleInterpolator: forFade,
+    cardStyle: CARD,
   } as StackNavigationOptions;
 }

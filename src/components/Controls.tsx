@@ -19,7 +19,7 @@ export function usePop(on: boolean, { from = 0 }: { from?: number } = {}) {
     }
     if (on) s.set(withSequence(withTiming(1.15, { duration: 230, easing: EASE }), withTiming(1, { duration: 150, easing: EASE })));
     else s.set(withTiming(from, { duration: 220, easing: EASE }));
-  }, [on]);
+  }, [from, on, s]);
   return useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
 }
 
@@ -34,7 +34,7 @@ export function useBump(dep: unknown, amount = 0.96) {
     }
     s.set(amount);
     s.set(withTiming(1, { duration: 380, easing: SPRING }));
-  }, [dep]);
+  }, [amount, dep, s]);
   return useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
 }
 
@@ -167,16 +167,16 @@ function usePopOnChange(v: unknown) {
       return;
     }
     s.set(withSequence(withTiming(0.92, { duration: 100 }), withTiming(1.06, { duration: 140, easing: EASE }), withTiming(1, { duration: 140, easing: EASE })));
-  }, [v]);
+  }, [s, v]);
   return useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
 }
 
 /** Switch 51×31, on = violet, off = fill, knob 27 white with shadow. */
-export function Switch({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+export function Switch({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) {
   const x = useSharedValue(value ? 20 : 0);
   useEffect(() => {
     x.set(withTiming(value ? 20 : 0, { duration: 300, easing: SPRING }));
-  }, [value]);
+  }, [value, x]);
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   const track = useAnimatedStyle(() => ({ backgroundColor: x.value > 10 ? C.violet : C.fill }));
   return (
@@ -187,6 +187,7 @@ export function Switch({ value, onChange }: { value: boolean; onChange: (v: bool
         onChange(!value);
       }}
       accessibilityRole="switch"
+      accessibilityLabel={label}
       accessibilityState={{ checked: value }}
       hitSlop={8}
     >
@@ -231,7 +232,7 @@ export function Segmented({
   const x = useSharedValue(value);
   useEffect(() => {
     x.set(withTiming(value, { duration: 320, easing: EASE }));
-  }, [value]);
+  }, [value, x]);
   const segW = w ? (w - 6) / options.length : 0;
   const ind = useAnimatedStyle(() => ({ transform: [{ translateX: x.value * segW }] }));
   return (

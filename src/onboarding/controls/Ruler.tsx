@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, useAnimatedReaction, cancelAnimation } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -8,6 +8,7 @@ import { C } from '../../theme/tokens';
 import { T } from '../../theme/type';
 import { FILL , webCursor } from '../../theme/motion';
 import { tick } from '../../components/anim';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Horizontal ruler (O02/O03): 8pt per 0.1 kg, minor tick every 0.1, mid every 0.5,
@@ -45,13 +46,8 @@ export function Ruler({ value, onChange }: { value: number; onChange: (v: number
   // a value set from outside (e.g. O03 starting from current) re-centers the window directly
   const renderCenter = Math.abs(value - center) > 5 ? value : center;
 
-  // keep in sync if the value changes from outside (e.g. O03 starting from current)
-  useEffect(() => {
-    if (Math.abs(snap(pos.value) - value) > 0.001) {
-      pos.set(value);
-      last.set(value);
-    }
-  }, [value]);
+  // The control owns its position: it starts from the prop and only reports changes back.
+  // (Re-syncing from the prop would fight a fling, because the prop always lags the gesture.)
 
   useAnimatedReaction(
     () => snap(pos.value),
@@ -65,6 +61,10 @@ export function Ruler({ value, onChange }: { value: number; onChange: (v: number
     }
   );
 
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+
+  const gs = useGestureScale();
+
   const pan = usePanGesture({
     minDistance: 2,
     onBegin: () => {
@@ -73,11 +73,11 @@ export function Ruler({ value, onChange }: { value: number; onChange: (v: number
     },
     onUpdate: (e) => {
       lastMove.set(Date.now());
-      pos.set(Math.max(MIN, Math.min(MAX, start.value - (e.translationX / PX) * STEP)));
+      pos.set(Math.max(MIN, Math.min(MAX, start.value - ((e.translationX / gs.value) / PX) * STEP)));
     },
     onDeactivate: (e) => {
       // a pause before release means no flick
-      const vx = Date.now() - lastMove.value > 60 ? 0 : Math.max(-3, Math.min(3, e.velocityX / 1000)); // px per ms, like the prototype (capped)
+      const vx = Date.now() - lastMove.value > 60 ? 0 : Math.max(-3, Math.min(3, (e.velocityX / gs.value) / 1000)); // px per ms, like the prototype (capped)
       const fling = ((-vx * 260) / PX) * STEP;
       const from = snap(pos.value);
       const end = snap(from + fling);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleProp, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleProp, View, ViewStyle } from 'react-native';
 import { C } from '../theme/tokens';
 import { T } from '../theme/type';
 import { Rise } from '../components/Rise';
@@ -28,7 +28,16 @@ export function OnbScreen({
 }) {
   const { top, bottom } = useScreen();
   return (
-    <View style={{ flex: 1, backgroundColor: bg, paddingTop: top + 50, paddingHorizontal: 16, paddingBottom: bottom }}>
+    <View style={{ flex: 1, backgroundColor: bg, paddingTop: top + 50, paddingBottom: bottom }}>
+      {/* scrolls only when the content is taller than the screen (small phones) */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16 }}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+        keyboardShouldPersistTaps="handled"
+      >
       {title ? (
         <Rise index={0} style={{ paddingTop: 26, paddingHorizontal: 4, gap: 10 }}>
           <T size={34} lh={40} w="700" ls={-0.03} accessibilityRole="header">
@@ -45,11 +54,12 @@ export function OnbScreen({
           ) : null}
         </Rise>
       ) : null}
-      <Rise index={1} style={[{ flex: 1, minHeight: 0, justifyContent: 'center', gap }, contentStyle]}>
+      <Rise index={1} style={[{ flex: 1, justifyContent: 'center', gap, paddingVertical: 8 }, contentStyle]}>
         {children}
       </Rise>
+      </ScrollView>
       {footer ? (
-        <Rise index={2} style={{ paddingTop: 16, gap: 4 }}>
+        <Rise index={2} style={{ paddingTop: 16, paddingHorizontal: 16, gap: 4 }}>
           {footer}
         </Rise>
       ) : null}

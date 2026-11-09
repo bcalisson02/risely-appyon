@@ -24,7 +24,7 @@ export function OnbHeader({ step, onBack }: { step: number; onBack: () => void }
     p.set(rm ? STEP_PROGRESS[step] : withDelay(180, withTiming(STEP_PROGRESS[step] ?? 0, { duration: 650, easing: EASE })));
     vis.set(withTiming(step > 0 ? 1 : 0, { duration: 340, easing: EASE }));
     backVis.set(withTiming(step > 0 && !HIDE_BACK.has(step) ? 1 : 0, { duration: 260 }));
-  }, [step]);
+  }, [backVis, p, step, vis]);
 
   const wrap = useAnimatedStyle(() => ({ opacity: vis.value }));
   const back = useAnimatedStyle(() => ({ opacity: backVis.value }));

@@ -9,6 +9,7 @@ import { T, fontFor } from '../../theme/type';
 import { FILL , webCursor } from '../../theme/motion';
 import { tick } from '../../components/anim';
 import type { Derived } from '../../logic/derive';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Pace chart (O04): SVG 329×160. Plot x 10→290, y 30 (higher weight) → 120 (lower weight),
@@ -33,7 +34,10 @@ export function PaceChart({ d }: { d: Derived }) {
   const k = w / 329;
   return (
     <View
-      onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width - 32)}
+      onLayout={(e: LayoutChangeEvent) => {
+        const iw = e.nativeEvent.layout.width - 32;
+        if (iw > 0) setW(iw);
+      }}
       style={{ backgroundColor: '#F6F6F9', borderRadius: 24, paddingTop: 16, paddingHorizontal: 16, paddingBottom: 10 }}
     >
       <Svg width={w} height={160 * k} viewBox="0 0 329 160" style={{ overflow: 'visible' }}>
@@ -112,9 +116,10 @@ export function PaceSlider({ value, onChange }: { value: number; onChange: (v: n
     },
     [onChange]
   );
+  // follow outside changes (accessibility actions) when the thumb isn't being dragged
   useEffect(() => {
-    if (pressed.value === 0) raw.set(withTiming(value, { duration: 300, easing: FILL }));
-  }, [value]);
+    if (pressed.get() === 0) raw.set(withTiming(value, { duration: 300, easing: FILL }));
+  }, [value, pressed, raw]);
 
   useAnimatedReaction(
     () => ssnap(raw.value),
@@ -131,14 +136,16 @@ export function PaceSlider({ value, onChange }: { value: number; onChange: (v: n
     if (width.value <= 0) return SMIN;
     return Math.max(SMIN, Math.min(SMAX, SMIN + (x / width.value) * (SMAX - SMIN)));
   };
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: (e) => {
       pressed.set(withTiming(1, { duration: 200 }));
-      raw.set(withTiming(at(e.x), { duration: 300, easing: FILL }));
+      raw.set(withTiming(at(e.x / gs.value), { duration: 300, easing: FILL }));
     },
     onUpdate: (e) => {
-      raw.set(at(e.x));
+      raw.set(at(e.x / gs.value));
     },
     onFinalize: () => {
       pressed.set(withTiming(0, { duration: 200 }));
@@ -167,6 +174,8 @@ export function PaceSlider({ value, onChange }: { value: number; onChange: (v: n
         accessibilityRole="adjustable"
         accessibilityLabel="Pace"
         accessibilityValue={{ text: `${value} kg per week` }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) => emit(ssnap(value + (e.nativeEvent.actionName === 'increment' ? SSTEP : -SSTEP)))}
       >
         <View style={{ position: 'absolute', left: 0, right: 0, top: 20, height: 4, borderRadius: 999, backgroundColor: '#E5E5EA' }} />
         <Animated.View style={[{ position: 'absolute', left: 0, top: 20, height: 4, borderRadius: 999, backgroundColor: C.violet }, fill]} />

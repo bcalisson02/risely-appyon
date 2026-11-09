@@ -28,7 +28,7 @@ export function O00() {
   const s = useSharedValue(rm ? 1 : 1.12);
   useEffect(() => {
     if (!rm) s.set(withTiming(1, { duration: 2400, easing: FILL }));
-  }, []);
+  }, [rm, s]);
   const kb = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   const photoH = Math.min(600, height * 0.7);
   return (

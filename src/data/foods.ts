@@ -7,11 +7,11 @@ export const RECENT: (Food & { serving: string; icon: 'coffee' | 'fish'; tone: '
 ];
 
 /** N6 search results for "avoc" */
-export const SEARCH: (Food & { serving: string; group: 'generic' | 'mine' | 'brand' })[] = [
+export const SEARCH: (Food & { serving: string; group: 'generic' | 'mine' | 'brand'; keywords?: string })[] = [
   { id: 'avocado', name: 'Avocado', serving: '1 medium · 240 kcal', kcal: 240, p: 3, c: 13, f: 22, group: 'generic' },
   { id: 'avocado-half', name: 'Avocado, half', serving: '50 g · 80 kcal', kcal: 80, p: 1, c: 4, f: 7, group: 'generic' },
   { id: 'avocado-toast', name: 'Avocado toast', serving: '1 slice · 195 kcal', kcal: 195, p: 5, c: 20, f: 11, group: 'mine' },
-  { id: 'guacamole', name: 'Guacamole', serving: '2 tbsp · 50 kcal', kcal: 50, p: 1, c: 3, f: 4, group: 'brand' },
+  { id: 'guacamole', name: 'Guacamole', serving: '2 tbsp · 50 kcal', kcal: 50, p: 1, c: 3, f: 4, group: 'brand', keywords: 'avocado' },
   { id: 'avocado-oil', name: 'Avocado oil', serving: '1 tbsp · 124 kcal', kcal: 124, p: 0, c: 0, f: 14, group: 'brand' },
 ];
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { C, IMG } from '../theme/tokens';
 import { EASE, SPRING, isReduceMotion } from '../theme/motion';
@@ -17,6 +17,7 @@ import { Msg, SUGGESTIONS, useCoach, useCoachCtx } from '../store/coach';
 import { useNutrition } from '../store/nutrition';
 import { comingSoon } from '../components/ComingSoon';
 import { useWorkouts } from '../store/workouts';
+import { goBack } from '../nav/back';
 
 const SALMON = { id: 'coach-salmon', name: 'Glazed salmon, sweet potato & broccoli', kcal: 560, p: 40, c: 52, f: 16 };
 
@@ -31,8 +32,13 @@ export default function Coach() {
   const empty = messages.length === 0;
   const thinking = status === 'thinking';
 
+  // opened from Today's "Dinner ideas": ask the dinner question once, with the values of that moment
+  const boot = useRef({ start, ctx, send });
   useEffect(() => {
-    if (start === 'dinner' && useCoach.getState().messages.length === 0) setTimeout(() => send('What should I eat for dinner?', ctx), 350);
+    const b = boot.current;
+    if (b.start !== 'dinner' || useCoach.getState().messages.length) return;
+    const t = setTimeout(() => b.send('What should I eat for dinner?', b.ctx), 350);
+    return () => clearTimeout(t);
   }, []);
   useEffect(() => {
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60);
@@ -48,17 +54,17 @@ export default function Coach() {
   return (
     <View style={{ flex: 1 }}>
       <Aura />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, paddingTop: top, paddingHorizontal: 16, paddingBottom: bottom }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={{ flex: 1, paddingTop: top, paddingHorizontal: 16, paddingBottom: bottom }}>
         {/* header: back, "Coach" with the 28pt mark, menu */}
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 6, paddingBottom: 8, zIndex: 5 }}>
-          <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => router.back()} />
+          <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => goBack('/')} />
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <CoachAvatar size={28} />
             <T size={17} w="600" accessibilityRole="header">
               Coach
             </T>
           </View>
-          <GlassButton icon={empty ? 'clock-counter-clockwise' : 'dots-three'} label={empty ? 'History' : 'More'} onPress={empty ? comingSoon : () => useCoach.getState().reset()} />
+          <GlassButton icon={empty ? 'clock-counter-clockwise' : 'dots-three'} label={empty ? 'History' : 'More'} onPress={comingSoon} />
         </View>
 
         {!online ? (
@@ -152,7 +158,7 @@ function Enter({ mine, children }: { mine: boolean; children: React.ReactNode })
   const k = useSharedValue(rm ? 1 : 0);
   useEffect(() => {
     if (!rm) k.set(withDelay(40, withTiming(1, { duration: 420, easing: SPRING })));
-  }, []);
+  }, [k, rm]);
   const st = useAnimatedStyle(() => ({
     opacity: Math.min(1, k.value),
     transform: [{ translateY: (1 - k.value) * 14 }, { scale: 0.96 + 0.04 * k.value }],
@@ -243,7 +249,7 @@ function MealCard({ id, logged }: { id: string; logged: boolean }) {
       s.set(withTiming(1, { duration: 400, easing: SPRING }));
     }
     prev.current = logged;
-  }, [logged]);
+  }, [addFood, logged, s]);
   return (
     <Enter mine={false}>
       <View style={{ width: 290, backgroundColor: '#FFFFFF', borderRadius: 20, overflow: 'hidden' }}>
@@ -378,6 +384,7 @@ function Composer({
         placeholderTextColor={C.tertiary}
         selectionColor={C.violet}
         multiline
+        numberOfLines={1}
         onSubmitEditing={onSend}
         blurOnSubmit
         returnKeyType="send"
@@ -389,7 +396,9 @@ function Composer({
         }}
         accessibilityLabel={placeholder}
         style={[
-          { flex: 1, fontSize: 17, lineHeight: 22, color: C.ink, paddingTop: 5, paddingBottom: 7, maxHeight: 110 },
+          // one 22pt line; native multiline grows with the text up to ~4 lines, web keeps one line and scrolls
+          { flex: 1, fontSize: 17, lineHeight: 22, color: C.ink, paddingTop: 5, paddingBottom: 7, maxHeight: 100 },
+          Platform.OS === 'web' ? { height: 34 } : null,
           fontFor('400'),
           Platform.OS === 'web' ? ({ outlineStyle: 'none', caretColor: C.violet } as any) : null,
         ]}

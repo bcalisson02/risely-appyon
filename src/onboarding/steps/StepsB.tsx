@@ -94,7 +94,7 @@ function Dot({ j, color, period, stagger, lift }: { j: number; color: string; pe
       return;
     }
     k.set(withDelay(j * stagger, withRepeat(withSequence(withTiming(1, { duration: period / 2, easing: Easing.inOut(Easing.ease) }), withTiming(0, { duration: period / 2, easing: Easing.inOut(Easing.ease) })), -1)));
-  }, []);
+  }, [j, k, period, stagger]);
   const st = useAnimatedStyle(() => ({ opacity: 0.3 + 0.7 * k.value, transform: [{ translateY: -lift * k.value }] }));
   return <Animated.View style={[{ width: 8, height: 8, borderRadius: 999, backgroundColor: color }, st]} />;
 }
@@ -175,9 +175,9 @@ export function O13() {
   const k = useSharedValue(rm ? 1 : 0);
   useEffect(() => {
     if (!rm) k.set(withDelay(500, withTiming(1, { duration: 620, easing: SPRING })));
-  }, []);
+  }, [k, rm]);
   const drop = useAnimatedStyle(() => ({ opacity: Math.min(1, k.value), transform: [{ translateY: (1 - k.value) * -40 }, { scale: 0.92 + 0.08 * k.value }] }));
-  const sw = (key: keyof typeof reminders) => <Switch value={reminders[key]} onChange={(v) => set({ reminders: { ...reminders, [key]: v } })} />;
+  const sw = (key: keyof typeof reminders, label: string) => <Switch label={label} value={reminders[key]} onChange={(v) => set({ reminders: { ...reminders, [key]: v } })} />;
   return (
     <OnbScreen
       title="Stay on track"
@@ -206,9 +206,9 @@ export function O13() {
         </View>
       </Animated.View>
       <InsetList bg={C.bg}>
-        <Row leading={<IconTile tone="lilac" icon="barbell" />} title="Workout" subtitle="7:30 AM" trailing={sw('workout')} padR={12} />
-        <Row leading={<IconTile tone="food" icon="fork-knife" />} title="Log meals" subtitle="12:30 & 7:00 PM" trailing={sw('meals')} padR={12} />
-        <Row leading={<IconTile tone="sky" icon="chart-line-up" />} title="Weekly check-in" subtitle="Sunday" trailing={sw('checkin')} padR={12} />
+        <Row leading={<IconTile tone="lilac" icon="barbell" />} title="Workout" subtitle="7:30 AM" trailing={sw('workout', 'Workout reminder')} padR={12} />
+        <Row leading={<IconTile tone="food" icon="fork-knife" />} title="Log meals" subtitle="12:30 & 7:00 PM" trailing={sw('meals', 'Log meals reminder')} padR={12} />
+        <Row leading={<IconTile tone="sky" icon="chart-line-up" />} title="Weekly check-in" subtitle="Sunday" trailing={sw('checkin', 'Weekly check-in reminder')} padR={12} />
       </InsetList>
     </OnbScreen>
   );
@@ -287,14 +287,14 @@ export function O15() {
       cancelAnimationFrame(raf);
       clearTimeout(t);
     };
-  }, []);
+  }, [bump]);
   useEffect(() => {
     if (si !== lastSi.current) {
       lastSi.current = si;
       txt.set(0);
       txt.set(withTiming(1, { duration: 300, easing: EASE }));
     }
-  }, [si]);
+  }, [si, txt]);
   const bumpSt = useAnimatedStyle(() => ({ transform: [{ scale: bump.value }] }));
   const txtSt = useAnimatedStyle(() => ({ opacity: txt.value, transform: [{ translateY: (1 - txt.value) * 6 }] }));
   return (
@@ -330,7 +330,7 @@ export function O16() {
   useEffect(() => {
     onb.arrivedAt(16);
     if (!rm) pop.set(withDelay(250, withSequence(withTiming(1.08, { duration: 434, easing: EASE }), withTiming(1, { duration: 186, easing: EASE }))));
-  }, []);
+  }, [pop, rm]);
   const popSt = useAnimatedStyle(() => ({ opacity: Math.min(1, pop.value * 1.4), transform: [{ scale: 0.3 + 0.7 * pop.value }] }));
   const kcal = useTween(d.kcalN, { duration: 800 });
   const bar = useTween(1, { duration: 900, delay: 220, easing: easeFill });

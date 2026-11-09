@@ -113,7 +113,7 @@ export default function Today() {
               kcal left of {fmtInt(day.goal)}
             </T>
           </Press>
-          <Press big onPress={() => router.push('/coach?start=dinner')} accessibilityRole="button" accessibilityLabel="Coach" style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10, minHeight: 140 }}>
+          <Press big onPress={() => router.push('/coach?start=dinner')} accessibilityRole="button" accessibilityLabel={`Coach: ${Math.max(0, day.pGoal - day.p)} g protein to go today. Dinner ideas`} style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16, gap: 10, minHeight: 140 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <CoachAvatar size={24} />
               <T size={15} w="600">

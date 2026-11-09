@@ -16,6 +16,7 @@ import { PrimaryButton } from '../../components/Button';
 import { useScreen, useLightStatusBar } from '../../components/Frame';
 import { CATALOG, EXERCISES } from '../../data/workouts';
 import { useWorkouts } from '../../store/workouts';
+import { goBack } from '../../nav/back';
 
 /** W4 · Workout detail — full-bleed hero, facts as capsules, exercise list; Start stays pinned. */
 export default function WorkoutDetail() {
@@ -88,7 +89,7 @@ export default function WorkoutDetail() {
 
       <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0.42)', 'rgba(0,0,0,0)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120 }} />
       <View style={{ position: 'absolute', top, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
-        <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => router.back()} />
+        <GlassButton icon="caret-left" weight="bold" iconSize={18} label="Back" onPress={() => goBack('/workouts')} />
         <Press
           onPress={() => {
             bs.set(withSequence(withTiming(0.5, { duration: 0 }), withTiming(1.15, { duration: 250, easing: EASE }), withTiming(1, { duration: 170, easing: EASE })));

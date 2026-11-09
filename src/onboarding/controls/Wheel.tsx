@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { webCursor } from '../../theme/motion';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, useAnimatedReaction, cancelAnimation, Easing, SharedValue, useDerivedValue } from 'react-native-reanimated';
@@ -7,6 +7,7 @@ import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import { C } from '../../theme/tokens';
 import { T } from '../../theme/type';
 import { tick } from '../../components/anim';
+import { useGestureScale } from '../../components/Frame';
 
 /**
  * Wheel picker (O11): rows 36pt, 216pt tall, 3D rotateX per row, snap with inertia,
@@ -47,12 +48,7 @@ export function Wheel({
     },
     [onChange, values]
   );
-  useEffect(() => {
-    if (values[last.value] !== value) {
-      last.set(idx);
-      pos.set(withTiming(idx, { duration: 320, easing: OUT }));
-    }
-  }, [value]);
+  // The wheel owns its position (see Ruler): it starts from the prop and only reports changes back.
 
   useAnimatedReaction(
     () => Math.max(0, Math.min(N - 1, Math.round(pos.value))),
@@ -72,6 +68,8 @@ export function Wheel({
     'worklet';
     pos.set(withTiming(t, { duration: ms, easing: OUT }));
   };
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
   const pan = usePanGesture({
     minDistance: 0,
     onBegin: () => {
@@ -80,19 +78,19 @@ export function Wheel({
     },
     onUpdate: (e) => {
       lastMove.set(Date.now());
-      let p = p0.value - e.translationY / H;
+      let p = p0.value - (e.translationY / gs.value) / H;
       if (p < 0) p *= 0.3;
       if (p > N - 1) p = N - 1 + (p - N + 1) * 0.3;
       pos.set(p);
     },
     onDeactivate: (e) => {
-      const moved = Math.abs(e.translationY) > 5;
+      const moved = Math.abs(e.translationY / gs.value) > 5;
       if (!moved) {
-        const off = (e.y - 108) / H;
+        const off = ((e.y / gs.value) - 108) / H;
         animTo(clamp(Math.round(pos.value + off)), 320);
         return;
       }
-      const vel = Date.now() - lastMove.value > 60 ? 0 : Math.max(-60, Math.min(60, -e.velocityY / H)); // items per second (capped)
+      const vel = Date.now() - lastMove.value > 60 ? 0 : Math.max(-60, Math.min(60, -(e.velocityY / gs.value) / H)); // items per second (capped)
       const tgt = clamp(Math.round(pos.value + vel * 0.22));
       animTo(tgt, Math.min(1100, 320 + Math.abs(tgt - pos.value) * 45));
     },

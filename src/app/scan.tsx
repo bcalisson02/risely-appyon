@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing, withSequence } from 'react-native-reanimated';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, IMG } from '../theme/tokens';
@@ -18,6 +18,7 @@ import { tapImpact } from '../components/anim';
 import { TERIYAKI, useNutrition } from '../store/nutrition';
 import { comingSoon } from '../components/ComingSoon';
 import { TERIYAKI_INGREDIENTS } from '../data/foods';
+import { closeTo, goBack } from '../nav/back';
 
 type Phase = 'camera' | 'analyzing' | 'result';
 
@@ -90,7 +91,7 @@ function Camera({ initialMode, onShoot }: { initialMode: number; onShoot: () => 
       <Image source={IMG.mealBowl} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" />
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' }} />
       <View style={{ paddingTop: top, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
-        <GlassButton dark icon="x" weight="bold" iconSize={18} label="Close" onPress={() => router.back()} />
+        <GlassButton dark icon="x" weight="bold" iconSize={18} label="Close" onPress={() => goBack('/nutrition')} />
         <GlassButton dark icon="lightning" weight={flash ? 'fill' : 'regular'} label="Flash" onPress={() => setFlash((f) => !f)} />
       </View>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
@@ -140,7 +141,8 @@ const STEPS = ['Finding the foods', 'Estimating portions', 'Calculating macros']
 
 /** N4 · Analyzing — scan line sweeps; steps tick as the estimate builds; auto-advances (~2.9 s). */
 function Analyzing() {
-  const { top, bottom } = useScreen();
+  const { top, bottom, height } = useScreen();
+  const PH = Math.min(430, Math.round(height * 0.505));
   const [cur, setCur] = useState(1); // index of the step in progress (0 is done on entry)
   useEffect(() => {
     const a = setTimeout(() => setCur(2), 1200);
@@ -153,18 +155,18 @@ function Analyzing() {
   const y = useSharedValue(-150);
   useEffect(() => {
     if (!isReduceMotion()) y.set(withRepeat(withTiming(110, { duration: 1500, easing: Easing.inOut(Easing.ease) }), -1, true));
-  }, []);
+  }, [y]);
   const line = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ height: 430, overflow: 'hidden' }}>
-        <Image source={IMG.mealBowl} style={{ width: '100%', height: 430 }} contentFit="cover" contentPosition={{ left: '50%', top: '45%' }} />
+      <View style={{ height: PH, overflow: 'hidden' }}>
+        <Image source={IMG.mealBowl} style={{ width: '100%', height: PH }} contentFit="cover" contentPosition={{ left: '50%', top: '45%' }} />
         <Animated.View style={[{ position: 'absolute', left: 0, right: 0, top: 250 }, line]}>
           <View style={{ height: 2, backgroundColor: C.violet, boxShadow: '0 0 24px 6px rgba(91,59,245,0.45)' } as any} />
           <LinearGradient colors={['rgba(91,59,245,0.16)', 'rgba(91,59,245,0)']} style={{ height: 120 }} />
         </Animated.View>
         <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0.42)', 'rgba(0,0,0,0)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 120 }} />
-        <GlassButton icon="x" weight="bold" iconSize={18} label="Close" onPress={() => router.back()} style={{ position: 'absolute', top, left: 16 }} />
+        <GlassButton icon="x" weight="bold" iconSize={18} label="Close" onPress={() => goBack('/nutrition')} style={{ position: 'absolute', top, left: 16 }} />
       </View>
       <View style={{ flex: 1, marginTop: -28, backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 24, paddingBottom: bottom, gap: 22 }}>
         <T size={28} lh={34} w="700" ls={-0.02} accessibilityRole="header">
@@ -194,7 +196,7 @@ function DoneDot() {
   const s = useSharedValue(0.4);
   useEffect(() => {
     s.set(withTiming(1, { duration: 300, easing: SPRING }));
-  }, []);
+  }, [s]);
   const st = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <Animated.View style={[{ width: 22, height: 22, borderRadius: 999, backgroundColor: C.violet, alignItems: 'center', justifyContent: 'center' }, st]}>
@@ -207,7 +209,7 @@ function Spinner() {
   const r = useSharedValue(0);
   useEffect(() => {
     r.set(withRepeat(withTiming(360, { duration: 800, easing: Easing.linear }), -1));
-  }, []);
+  }, [r]);
   const st = useAnimatedStyle(() => ({ transform: [{ rotate: `${r.value}deg` }] }));
   return <Animated.View style={[{ width: 22, height: 22, borderRadius: 999, borderWidth: 2.5, borderColor: C.fill, borderTopColor: C.violet }, st]} />;
 }
@@ -218,8 +220,7 @@ function Result({ onRetake }: { onRetake: () => void }) {
   const addFood = useNutrition((s) => s.addFood);
   const finish = () => {
     addFood(TERIYAKI);
-    router.dismissAll();
-    router.navigate('/nutrition');
+    closeTo('/nutrition');
   };
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -238,10 +239,7 @@ function Result({ onRetake }: { onRetake: () => void }) {
             weight="bold"
             iconSize={18}
             label="Close"
-            onPress={() => {
-              router.dismissAll();
-              router.navigate('/nutrition');
-            }}
+            onPress={() => closeTo('/nutrition')}
           />
           <Press onPress={onRetake} accessibilityRole="button" style={{ height: 34, paddingHorizontal: 14, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.7)', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icon name="camera" size={16} />

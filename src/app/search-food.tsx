@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import { C } from '../theme/tokens';
 import { T, fontFor } from '../theme/type';
 import { Icon } from '../components/Icon';
@@ -13,6 +12,7 @@ import { useScreen } from '../components/Frame';
 import { SEARCH } from '../data/foods';
 import { useNutrition } from '../store/nutrition';
 import { fmtInt } from '../components/anim';
+import { closeTo, goBack } from '../nav/back';
 
 const FILTERS = ['All', 'My foods', 'Brands'];
 
@@ -27,7 +27,7 @@ export default function SearchFood() {
 
   const results = useMemo(
     () =>
-      SEARCH.filter((f) => f.name.toLowerCase().includes(q.trim().toLowerCase())).filter((f) =>
+      SEARCH.filter((f) => (f.name + ' ' + (f.keywords ?? '')).toLowerCase().includes(q.trim().toLowerCase())).filter((f) =>
         filter === 0 ? true : filter === 1 ? f.group === 'mine' : f.group === 'brand'
       ),
     [q, filter]
@@ -36,7 +36,7 @@ export default function SearchFood() {
   const kcal = picked.reduce((a, f) => a + f.kcal, 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: top, paddingHorizontal: 16, paddingBottom: bottom }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={{ flex: 1, backgroundColor: C.bg, paddingTop: top, paddingHorizontal: 16, paddingBottom: bottom }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 8, paddingBottom: 12 }}>
         <View style={{ flex: 1, height: 40, borderRadius: 12, backgroundColor: C.fill, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10 }}>
           <Icon name="magnifying-glass" size={18} color={C.secondary} />
@@ -58,7 +58,7 @@ export default function SearchFood() {
             </Press>
           ) : null}
         </View>
-        <Press onPress={() => router.back()} accessibilityRole="button" hitSlop={6}>
+        <Press onPress={() => goBack('/nutrition')} accessibilityRole="button" hitSlop={6}>
           <T size={17} color={C.violet}>
             Cancel
           </T>
@@ -69,7 +69,7 @@ export default function SearchFood() {
           <Chip key={f} label={f} on={filter === i} onPress={() => setFilter(i)} height={32} />
         ))}
       </View>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 90 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {results.length ? (
           <InsetList>
             {results.map((f) => {
@@ -82,7 +82,7 @@ export default function SearchFood() {
                   leadPad={16}
                   padV={10}
                   padR={12}
-                  trailing={<AddToggle on={on} onPress={() => setSel((s) => (on ? s.filter((x) => x !== f.id) : [...s, f.id]))} />}
+                  trailing={<AddToggle on={on} label={f.name} onPress={() => setSel((s) => (on ? s.filter((x) => x !== f.id) : [...s, f.id]))} />}
                 />
               );
             })}
@@ -97,7 +97,7 @@ export default function SearchFood() {
         <Animated.View
           entering={FadeInDown.duration(320)}
           exiting={FadeOutDown.duration(220)}
-          style={{ position: 'absolute', left: 16, right: 16, bottom: bottom, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 6, paddingRight: 6, paddingLeft: 20, boxShadow: '0 8px 30px rgba(0,0,0,0.10)' } as any}
+          style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 6, paddingRight: 6, paddingLeft: 20, boxShadow: '0 8px 30px rgba(0,0,0,0.10)' } as any}
         >
           <T size={15} style={{ flex: 1 }} numberOfLines={1}>
             <T size={15} w="600">
@@ -110,9 +110,8 @@ export default function SearchFood() {
           </T>
           <Press
             onPress={() => {
-              addFood(picked.map(({ group, serving, ...f }) => f));
-              router.dismissAll();
-              router.navigate('/nutrition');
+              addFood(picked.map((f) => ({ id: f.id, name: f.name, kcal: f.kcal, p: f.p, c: f.c, f: f.f })));
+              closeTo('/nutrition');
             }}
             accessibilityRole="button"
             style={{ height: 40, paddingHorizontal: 20, borderRadius: 999, backgroundColor: C.ink, justifyContent: 'center' }}
@@ -123,6 +122,6 @@ export default function SearchFood() {
           </Press>
         </Animated.View>
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }

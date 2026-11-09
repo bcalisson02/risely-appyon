@@ -3,13 +3,14 @@ import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import { router } from 'expo-router';
+import { Href } from 'expo-router';
 import { C } from '../theme/tokens';
 import { EASE } from '../theme/motion';
 import { T } from '../theme/type';
 import { Icon } from './Icon';
 import { Press } from './Press';
-import { useScreen } from './Frame';
+import { useScreen, useGestureScale } from './Frame';
+import { goBack } from '../nav/back';
 
 /**
  * Bottom sheet body (N2, W2). The navigator animates the rise (560 ms) and the 0.28 dim;
@@ -21,24 +22,29 @@ export function Sheet({
   left,
   topOffset = 190,
   footer,
+  fallback = '/',
 }: {
   title: string;
   children: React.ReactNode;
   left?: React.ReactNode;
   topOffset?: number;
   footer?: React.ReactNode;
+  /** where closing lands when the sheet was opened directly */
+  fallback?: Href;
 }) {
   const { height, bottom } = useScreen();
   const top = Math.min(topOffset, Math.max(60, height - 640));
   const y = useSharedValue(0);
-  const close = () => router.back();
+  const close = () => goBack(fallback);
+  // pointer values arrive in screen px; divide by the frame scale to get layout points
+  const gs = useGestureScale();
   const pan = usePanGesture({
     activeOffsetY: [-8, 8],
     onUpdate: (e) => {
-      y.set(Math.max(0, e.translationY) + Math.min(0, e.translationY) * 0.15);
+      y.set(Math.max(0, e.translationY / gs.value) + Math.min(0, e.translationY / gs.value) * 0.15);
     },
     onDeactivate: (e) => {
-      if (e.translationY > 120 || e.velocityY > 900) {
+      if ((e.translationY / gs.value) > 120 || (e.velocityY / gs.value) > 900) {
         scheduleOnRN(close);
       } else y.set(withTiming(0, { duration: 300, easing: EASE }));
     },

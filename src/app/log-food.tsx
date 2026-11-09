@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { C } from '../theme/tokens';
@@ -16,7 +16,9 @@ import { useNutrition } from '../store/nutrition';
 export default function LogFood() {
   const addFood = useNutrition((s) => s.addFood);
   const remove = useNutrition((s) => s.remove);
-  const [added, setAdded] = useState<Record<string, string[]>>({});
+  const dinner = useNutrition((s) => s.dinner);
+  // a Recent item is ticked while dinner holds an entry made from it (ids are '<food id>-<time>-<n>')
+  const entriesOf = (foodId: string) => dinner.filter((d) => d.id.startsWith(foodId + '-')).map((d) => d.id);
 
   const big = (icon: IconName, title: string, sub: string, onPress: () => void) => (
     <Press big onPress={onPress} accessibilityRole="button" style={{ flex: 1, backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 22 }}>
@@ -33,7 +35,7 @@ export default function LogFood() {
   );
 
   return (
-    <Sheet title="Log food">
+    <Sheet title="Log food" fallback="/nutrition">
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 14 }}>
         <T size={15} color={C.secondary}>
           Adding to
@@ -66,7 +68,7 @@ export default function LogFood() {
       </T>
       <InsetList>
         {RECENT.map((f) => {
-          const on = !!added[f.id];
+          const on = entriesOf(f.id).length > 0;
           return (
             <Row
               key={f.id}
@@ -82,15 +84,8 @@ export default function LogFood() {
               trailing={
                 <AddToggle
                   on={on}
-                  onPress={() => {
-                    if (on) {
-                      remove(added[f.id]);
-                      setAdded(({ [f.id]: _, ...rest }) => rest);
-                    } else {
-                      const ids = addFood(f);
-                      setAdded((a) => ({ ...a, [f.id]: ids }));
-                    }
-                  }}
+                  label={f.name}
+                  onPress={() => (on ? remove(entriesOf(f.id)) : addFood(f, { toast: false }))}
                 />
               }
             />

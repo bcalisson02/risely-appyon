@@ -1,4 +1,5 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
+import { SharedValue, useSharedValue } from 'react-native-reanimated';
 import { Platform, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
@@ -12,10 +13,21 @@ import { ComingSoonToast } from './ComingSoon';
  * On a desktop browser the app renders inside a 393-wide iPhone frame (like the HTML prototype),
  * with a drawn status bar and home indicator. On phones (native or mobile web) it is full-bleed
  * and uses the real safe-area insets.
+ *
+ * When the browser is shorter than the phone, the whole 393×852 phone is scaled down (as the HTML
+ * prototype does) instead of squeezing the layout. Pointer coordinates then arrive in screen pixels,
+ * so drag controls divide by useGestureScale() to stay in layout points.
  */
 export type ScreenMetrics = { width: number; height: number; top: number; bottom: number; framed: boolean };
 const Ctx = createContext<ScreenMetrics>({ width: 393, height: 852, top: 54, bottom: 34, framed: false });
 export const useScreen = () => useContext(Ctx);
+
+const ScaleCtx = createContext<SharedValue<number> | null>(null);
+/** Screen-pixel → layout-point factor for gesture math (1 everywhere except a scaled desktop frame). */
+export function useGestureScale(): SharedValue<number> {
+  const fallback = useSharedValue(1);
+  return useContext(ScaleCtx) ?? fallback;
+}
 
 /** Status bar tint requested by the visible screen. */
 export const useStatusTint = create<{ light: boolean; setLight: (v: boolean) => void }>((set) => ({
@@ -30,6 +42,11 @@ export function Frame({ children }: { children: React.ReactNode }) {
   const win = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const framed = Platform.OS === 'web' && win.width >= 600;
+  const scale = framed ? Math.min(1, Math.max(0.5, (win.height - 32) / (PHONE_H + 22))) : 1;
+  const gs = useSharedValue(scale);
+  useEffect(() => {
+    gs.set(scale);
+  }, [scale, gs]);
   if (!framed) {
     const m: ScreenMetrics = {
       width: win.width,
@@ -39,6 +56,7 @@ export function Frame({ children }: { children: React.ReactNode }) {
       framed: false,
     };
     return (
+      <ScaleCtx.Provider value={gs}>
       <Ctx.Provider value={m}>
         <View style={{ flex: 1, backgroundColor: '#F2F2F7' }}>
           {children}
@@ -46,24 +64,31 @@ export function Frame({ children }: { children: React.ReactNode }) {
         </View>
         <NativeStatusBar />
       </Ctx.Provider>
+      </ScaleCtx.Provider>
     );
   }
-  const h = Math.min(PHONE_H, win.height - 40);
-  const m: ScreenMetrics = { width: PHONE_W, height: h, top: 54, bottom: 34, framed: true };
+  const m: ScreenMetrics = { width: PHONE_W, height: PHONE_H, top: 54, bottom: 34, framed: true };
+  const boxW = (PHONE_W + 22) * scale;
+  const boxH = (PHONE_H + 22) * scale;
   return (
+    <ScaleCtx.Provider value={gs}>
     <Ctx.Provider value={m}>
       <View style={{ flex: 1, backgroundColor: '#E9E9EE', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: boxW, height: boxH }}>
         <View
           style={
             {
+              position: 'absolute',
+              left: (boxW - PHONE_W) / 2,
+              top: (boxH - PHONE_H) / 2,
               width: PHONE_W,
-              height: h,
+              height: PHONE_H,
               borderRadius: 54,
               overflow: 'hidden',
               backgroundColor: '#F2F2F7',
               boxShadow: '0 0 0 10px #1C1C1E, 0 0 0 11px #3A3A3C, 0 40px 80px rgba(30,20,70,0.25)',
               isolation: 'isolate',
-              transform: [{ translateZ: 0 }],
+              transform: [{ scale }],
             } as any
           }
         >
@@ -71,8 +96,10 @@ export function Frame({ children }: { children: React.ReactNode }) {
           <ComingSoonToast />
           <StatusBarChrome />
         </View>
+        </View>
       </View>
     </Ctx.Provider>
+    </ScaleCtx.Provider>
   );
 }
 

@@ -9,6 +9,7 @@ import { Press } from '../components/Press';
 import { PrimaryButton } from '../components/Button';
 import { tick } from '../components/anim';
 import { DURATIONS, EQUIPMENT, FOCUS, LEVELS, matchCount, useWorkouts, Filters } from '../store/workouts';
+import { goBack } from '../nav/back';
 
 const Label = ({ children }: { children: string }) => (
   <T size={15} w="600" style={{ paddingTop: 22, paddingHorizontal: 4, paddingBottom: 10 }}>
@@ -43,6 +44,7 @@ export default function FiltersSheet() {
   return (
     <Sheet
       title="Filters"
+      fallback="/workouts"
       topOffset={150}
       left={
         <Press onPress={resetFilters} accessibilityRole="button" hitSlop={8} style={{ width: 70 }}>
@@ -51,7 +53,7 @@ export default function FiltersSheet() {
           </T>
         </Press>
       }
-      footer={<PrimaryButton title={`Show ${n} workouts`} onPress={() => (from === 'category' ? router.back() : router.replace('/category?name=Pilates'))} />}
+      footer={<PrimaryButton title={`Show ${n} workouts`} onPress={() => (from === 'category' ? goBack('/category?name=Pilates') : router.replace('/category?name=Pilates'))} />}
     >
       <Label>Duration</Label>
       <View style={{ flexDirection: 'row', padding: 2, backgroundColor: C.fill, borderRadius: 10 }}>

@@ -37,8 +37,10 @@ export const onb = {
     useOnboarding.getState().finish();
     router.replace('/(tabs)');
   },
+  /** O16 "Adjust answers": back to O01 with the steps in between removed from history */
   restart() {
     returnTo = null;
-    router.dismissTo('/onboarding/1');
+    if (router.canDismiss()) router.dismissAll();
+    router.push('/onboarding/1');
   },
 };
