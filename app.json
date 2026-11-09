@@ -1,17 +1,21 @@
 {
   "expo": {
-    "name": "risely",
+    "name": "Risely",
     "slug": "risely",
+    "scheme": "risely",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/risely-app-icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F2F2F7",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.appyon.risely"
     },
     "android": {
+      "package": "com.appyon.risely",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -19,7 +23,19 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/risely-app-icon-sm.png",
+      "output": "single",
+      "name": "Risely",
+      "themeColor": "#F2F2F7"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "tsconfigPaths": false
     }
   }
 }
