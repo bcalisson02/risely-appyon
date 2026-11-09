@@ -116,7 +116,7 @@ export function O03() {
     <OnbScreen
       title="What's your target weight?"
       subtitle={
-        <T size={17} lh={23} color={C.secondary}>
+        <T size={17} lh={23} color={C.secondary} wrap="pretty">
           You weigh{' '}
           <T size={17} lh={23} w="600">
             {d.curW}

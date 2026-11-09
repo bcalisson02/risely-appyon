@@ -62,7 +62,7 @@ export function Sheet({
         <GestureDetector gesture={pan}>
           <View style={{ paddingTop: 8, paddingHorizontal: 16 }}>
             <View style={{ alignSelf: 'center', width: 36, height: 5, borderRadius: 999, backgroundColor: '#C7C7CC', marginBottom: 10 }} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: left ? 6 : 14 }}>
               {left ?? (
                 <T size={22} w="700" ls={-0.015} accessibilityRole="header">
                   {title}

@@ -40,12 +40,12 @@ export function OnbScreen({
       >
       {title ? (
         <Rise index={0} style={{ paddingTop: 26, paddingHorizontal: 4, gap: 10 }}>
-          <T size={34} lh={40} w="700" ls={-0.03} accessibilityRole="header">
+          <T size={34} lh={40} w="700" ls={-0.03} accessibilityRole="header" wrap="balance">
             {title}
           </T>
           {subtitle ? (
             typeof subtitle === 'string' ? (
-              <T size={17} lh={23} color={C.secondary}>
+              <T size={17} lh={23} color={C.secondary} wrap="pretty">
                 {subtitle}
               </T>
             ) : (

@@ -153,7 +153,13 @@ function EmptyState({ onPick }: { onPick: (t: string) => void }) {
 }
 
 /** Each new message enters with opacity, translateY 14 → 0 and scale 0.96 → 1 (420 ms spring) from its corner. */
-function Enter({ mine, children }: { mine: boolean; children: React.ReactNode }) {
+/**
+ * The prototype caps bubbles with CSS max-width 78% (user) / 82% (coach) on a content-box, so the
+ * 14pt side padding comes on top. RN measures border-box, hence the wider percentages here.
+ */
+const BUBBLE_MAX = { user: '86%', coach: '90%' } as const;
+
+function Enter({ mine, children, max = '100%' }: { mine: boolean; children: React.ReactNode; max?: `${number}%` }) {
   const rm = isReduceMotion();
   const k = useSharedValue(rm ? 1 : 0);
   useEffect(() => {
@@ -163,7 +169,7 @@ function Enter({ mine, children }: { mine: boolean; children: React.ReactNode })
     opacity: Math.min(1, k.value),
     transform: [{ translateY: (1 - k.value) * 14 }, { scale: 0.96 + 0.04 * k.value }],
   }));
-  return <Animated.View style={[{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '100%', transformOrigin: mine ? 'right bottom' : 'left bottom' } as any, st]}>{children}</Animated.View>;
+  return <Animated.View style={[{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: max, transformOrigin: mine ? 'right bottom' : 'left bottom' } as any, st]}>{children}</Animated.View>;
 }
 
 function Bubble({ mine, text, faded }: { mine: boolean; text: string; faded?: boolean }) {
@@ -200,7 +206,7 @@ function Message({ m }: { m: Msg }) {
           <View style={{ alignItems: 'flex-end', gap: 8 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Icon name="warning-circle" size={22} color={C.error} weight="fill" />
-              <View style={{ maxWidth: 250 }}>
+              <View style={{ maxWidth: 280 }}>
                 <Bubble mine text={m.text} faded />
               </View>
             </View>
@@ -216,19 +222,15 @@ function Message({ m }: { m: Msg }) {
         </Enter>
       );
     return (
-      <Enter mine>
-        <View style={{ maxWidth: 290 }}>
-          <Bubble mine text={m.text} />
-        </View>
+      <Enter mine max={BUBBLE_MAX.user}>
+        <Bubble mine text={m.text} />
       </Enter>
     );
   }
   if (m.kind === 'text')
     return (
-      <Enter mine={false}>
-        <View style={{ maxWidth: 300 }}>
-          <Bubble mine={false} text={m.text} />
-        </View>
+      <Enter mine={false} max={BUBBLE_MAX.coach}>
+        <Bubble mine={false} text={m.text} />
       </Enter>
     );
   if (m.kind === 'meal') return <MealCard id={m.id} logged={!!m.logged} />;

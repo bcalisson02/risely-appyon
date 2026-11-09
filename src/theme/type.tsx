@@ -36,7 +36,11 @@ export type TProps = TextProps & {
   center?: boolean;
   style?: StyleProp<TextStyle>;
   animated?: boolean;
+  /** CSS text-wrap from the prototype: balance (titles) or pretty (body). Web and Android only. */
+  wrap?: 'balance' | 'pretty';
 };
+
+const WRAP_WEB = { balance: { textWrap: 'balance' }, pretty: { textWrap: 'pretty' } } as unknown as Record<'balance' | 'pretty', TextStyle>;
 
 export function tStyle({ size = 17, lh, w = '400', color = C.ink, ls, rounded, center }: TProps): TextStyle {
   const st: { -readonly [K in keyof TextStyle]: TextStyle[K] } = {
@@ -53,10 +57,12 @@ export function tStyle({ size = 17, lh, w = '400', color = C.ink, ls, rounded, c
 }
 
 export function T(props: TProps) {
-  const { size, lh, w, color, ls, rounded, center, style, animated, ...rest } = props;
+  const { size, lh, w, color, ls, rounded, center, style, animated, wrap, ...rest } = props;
   const s = tStyle({ size, lh, w, color, ls, rounded, center });
-  if (animated) return <Animated.Text {...(rest as any)} style={[s, style]} />;
-  return <Text {...rest} style={[s, style]} />;
+  const ws = wrap && Platform.OS === 'web' ? WRAP_WEB[wrap] : null;
+  const extra = wrap === 'balance' && Platform.OS === 'android' ? { textBreakStrategy: 'balanced' as const } : null;
+  if (animated) return <Animated.Text {...(rest as any)} {...extra} style={[s, ws, style]} />;
+  return <Text {...rest} {...extra} style={[s, ws, style]} />;
 }
 
 /** Rounded tabular number. */
@@ -85,7 +91,7 @@ export function TwoTone({
   center?: boolean;
 }) {
   return (
-    <T size={size} lh={lh} w="700" ls={ls} style={style} center={center}>
+    <T size={size} lh={lh} w="700" ls={ls} style={style} center={center} wrap="balance">
       <T size={size} lh={lh} w="700" ls={ls} color={C.gray2}>
         {gray}
       </T>

@@ -133,14 +133,14 @@ export function O12() {
         </T>
       </Animated.View>
       <View style={{ gap: 10, paddingTop: 16 }}>
-        <View style={{ alignSelf: 'flex-end', maxWidth: '78%', backgroundColor: C.violet, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderBottomRightRadius: 6 }}>
+        <View style={{ alignSelf: 'flex-end', maxWidth: '86%', backgroundColor: C.violet, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderBottomRightRadius: 6 }}>
           <T size={17} lh={22} color="#FFFFFF">
             I skipped my workout today.
           </T>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
           <CoachAvatar size={30} />
-          <View style={{ maxWidth: '78%', minHeight: 22, backgroundColor: C.bg, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6 }}>
+          <View style={{ flexShrink: 1, maxWidth: '86%', minHeight: 22, backgroundColor: C.bg, paddingVertical: 9, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6 }}>
             {typing ? (
               <TypingDots />
             ) : (
@@ -483,7 +483,7 @@ export function O16() {
           </Press>
         </Rise>
         <Rise index={7}>
-          <T size={13} lh={18} color={C.secondary} style={{ paddingTop: 12, paddingHorizontal: 4 }}>
+          <T size={13} lh={18} color={C.secondary} wrap="pretty" style={{ paddingTop: 12, paddingHorizontal: 4 }}>
             Targets are estimates and adjust as you log meals and workouts. Not medical advice.
           </T>
         </Rise>
